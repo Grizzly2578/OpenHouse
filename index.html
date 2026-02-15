@@ -1051,7 +1051,7 @@
             start();
         }
 
-        // 9. SNAKE (Google Style + 60FPS Smooth)
+        // 9. SNAKE (Google Style + 60FPS Smooth + Rounded)
         function initSnake(container) {
             // Mode Select UI
             container.innerHTML = `
@@ -1236,7 +1236,16 @@
                         let drawX = prev.x + dx * alpha;
                         let drawY = prev.y + dy * alpha;
 
-                        ctx.fillRect(drawX * tileSize, drawY * tileSize, tileSize, tileSize);
+                        // NEW DRAWING CODE
+                        ctx.beginPath();
+                        // Use a fixed padding of 1px for visual separation of rounded segments
+                        let padding = 1;
+                        let size = tileSize - (padding * 2);
+                        // Dynamic radius based on tile size
+                        let rad = size * 0.25; 
+                        
+                        ctx.roundRect(drawX * tileSize + padding, drawY * tileSize + padding, size, size, rad);
+                        ctx.fill();
                     });
 
                     // Eyes (Based on head interpolation)
@@ -1254,8 +1263,6 @@
                     let off = tileSize/4;
                     
                     let eye1 = {x: ex, y: ey}, eye2 = {x: ex, y: ey};
-                    // Use logic dx/dy for eye direction so they don't spin during interpolation? 
-                    // Or keep them relative to movement. 
                     if(dy === -1) { eye1.x -= off; eye1.y -= off; eye2.x += off; eye2.y -= off; }
                     else if(dy === 1) { eye1.x -= off; eye1.y += off; eye2.x += off; eye2.y += off; }
                     else if(dx === -1) { eye1.x -= off; eye1.y -= off; eye2.x -= off; eye2.y += off; }
