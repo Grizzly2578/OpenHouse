@@ -226,6 +226,12 @@
         .vm-tile.correct { background: #4caf50; animation: bounce 0.3s; }
         .vm-tile.wrong { background: #2b3b55; animation: shake 0.4s; }
         .vm-tile.missed { background: #e94560; }
+
+        /* --- GAME 7: NUMBER MEMORY --- */
+        #num-input {
+            padding: 15px; font-size: 1.5rem; border-radius: 10px; border: none; 
+            width: 250px; text-align: center; margin-bottom: 20px;
+        }
         
         @keyframes bounce { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
         @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
@@ -301,13 +307,18 @@
             </div>
             <div class="game-card" onclick="openGame('memory')">
                 <div class="game-icon">🧠</div>
-                <div class="game-title">Simon Says</div>
+                <div class="game-title">Sequence Memory</div>
                 <div class="game-desc">Repeat the pattern</div>
             </div>
             <div class="game-card" onclick="openGame('visual')">
                 <div class="game-icon">👀</div>
                 <div class="game-title">Visual Memory</div>
                 <div class="game-desc">Remember the grid tiles</div>
+            </div>
+            <div class="game-card" onclick="openGame('number')">
+                <div class="game-icon">🔢</div>
+                <div class="game-title">Number Memory</div>
+                <div class="game-desc">Memorize long numbers</div>
             </div>
             <div class="game-card" onclick="openGame('rush')">
                 <div class="game-icon">⚡</div>
@@ -363,8 +374,9 @@
             'chrono': { name: "Chrono Stop", unit: "s diff", sort: 'asc' }, // Lower diff is better
             'stack': { name: "Tower Stack", unit: "blocks", sort: 'desc' },
             'floppy': { name: "Floppy Bird", unit: "pipes", sort: 'desc' },
-            'memory': { name: "Simon Says", unit: "level", sort: 'desc' },
+            'memory': { name: "Sequence Memory", unit: "level", sort: 'desc' },
             'visual': { name: "Visual Memory", unit: "level", sort: 'desc' },
+            'number': { name: "Number Memory", unit: "level", sort: 'desc' },
             'rush': { name: "Sugar Rush", unit: "pts", sort: 'desc' }
         };
 
@@ -450,6 +462,7 @@
             if(id === 'floppy') return "Tap or Spacebar to fly.";
             if(id === 'memory') return "Watch the pattern, then repeat it.";
             if(id === 'visual') return "Memorize the white tiles.";
+            if(id === 'number') return "Memorize the number shown.";
             if(id === 'rush') return "Tap blue tiles fast!";
             return "";
         }
@@ -463,6 +476,7 @@
             if (gameId === 'floppy') initFloppy(area);
             if (gameId === 'memory') initMemory(area);
             if (gameId === 'visual') initVisual(area);
+            if (gameId === 'number') initNumber(area);
             if (gameId === 'rush') initRush(area);
         }
 
@@ -743,7 +757,7 @@
             loop();
         }
 
-        // 4. SIMON SAYS
+        // 4. SEQUENCE MEMORY
         function initMemory(container) {
             container.innerHTML = `
                 <div class="score-display" id="mem-level">Lvl 1</div>
@@ -801,7 +815,7 @@
             setTimeout(playSeq, 1000);
         }
 
-        // 5. VISUAL MEMORY (New Game)
+        // 5. VISUAL MEMORY
         function initVisual(container) {
             container.innerHTML = `
                 <div style="display:flex; gap:20px; font-size:1.5rem; font-weight:bold;">
@@ -880,7 +894,73 @@
             setupLevel();
         }
 
-        // 6. SUGAR RUSH
+        // 6. NUMBER MEMORY (New Game)
+        function initNumber(container) {
+            let level = 1;
+            
+            function startLevel() {
+                // Generate n-digit number
+                let numStr = "";
+                for(let i=0; i<level; i++) numStr += Math.floor(Math.random()*10);
+                
+                // Display
+                container.innerHTML = `
+                    <div style="font-size: 2rem; margin-bottom: 20px;">Level ${level}</div>
+                    <div style="font-size: 4rem; font-weight: bold; animation: popIn 0.3s;">${numStr}</div>
+                    <div id="num-bar" style="width: 100%; height: 5px; background: white; margin-top: 20px; transition: width 0.1s linear;"></div>
+                `;
+                
+                // Bar Animation
+                setTimeout(() => {
+                     const bar = document.getElementById('num-bar');
+                     if(bar) {
+                         bar.style.width = '0%';
+                         // Time: 1s base + 0.5s per digit
+                         const time = 1000 + (level * 600);
+                         bar.style.transition = `width ${time}ms linear`;
+                         setTimeout(() => showInput(numStr), time);
+                     }
+                }, 50);
+            }
+
+            function showInput(target) {
+                container.innerHTML = `
+                    <div style="font-size: 1.5rem; margin-bottom: 20px;">What was the number?</div>
+                    <input type="number" id="num-input" placeholder="Enter number" autocomplete="off">
+                    <br>
+                    <button class="action-btn" id="num-submit">Submit</button>
+                `;
+                
+                const input = document.getElementById('num-input');
+                const btn = document.getElementById('num-submit');
+                
+                input.focus();
+                
+                const check = () => {
+                    if(input.value === target) {
+                        level++;
+                        container.innerHTML = `<div style="font-size: 2.5rem; color: #4caf50;">Correct!</div>`;
+                        setTimeout(startLevel, 1000);
+                    } else {
+                        container.innerHTML = `
+                            <div style="font-size: 2.5rem; color: #f44336; margin-bottom:15px">Wrong!</div>
+                            <div style="font-size: 1.2rem; opacity:0.8">Number was:</div>
+                            <div style="font-size: 1.5rem; margin-bottom:10px">${target}</div>
+                            <div style="font-size: 1.2rem; opacity:0.8">You said:</div>
+                            <div style="font-size: 1.5rem;">${input.value}</div>
+                        `;
+                        setTimeout(() => handleGameOver(level), 3000);
+                    }
+                };
+
+                btn.onclick = check;
+                input.onkeydown = (e) => { if(e.key === 'Enter') check(); };
+            }
+            
+            startLevel();
+        }
+
+        // 7. SUGAR RUSH
         function initRush(container) {
             container.innerHTML = `
                 <div class="score-display" id="rush-score">0</div>
