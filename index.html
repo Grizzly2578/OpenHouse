@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Open House Arcade</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --card-bg: #16213e;
+            --accent: #0f3460;
+            --highlight: #e94560;
+            --text: #ffffff;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --gradient-1: linear-gradient(135deg, #e94560, #ff6b6b);
+            --gradient-2: linear-gradient(135deg, #0f3460, #16213e);
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: var(--font-main);
+            overflow: hidden; 
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- MENU SCREEN --- */
+        #menu-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px var(--highlight);
+            text-align: center;
+        }
+
+        .subtitle {
+            margin-bottom: 30px;
+            opacity: 0.8;
+            font-size: 1.2rem;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 95%;
+            max-width: 1000px;
+            padding: 10px;
+        }
+
+        .game-card {
+            background: var(--card-bg);
+            border: 2px solid var(--accent);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 160px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--highlight);
+            background: #1f2b4d;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .game-icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .game-title { font-weight: bold; font-size: 1.2rem; margin-bottom: 5px; }
+        .game-desc { font-size: 0.8rem; opacity: 0.7; }
+
+        /* --- GAME CONTAINER --- */
+        #game-screen {
+            display: none; 
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color);
+            flex-direction: column;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .nav-bar {
+            width: 100%;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .back-btn {
+            background: transparent;
+            border: 1px solid var(--text);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .back-btn:hover { background: rgba(255,255,255,0.1); }
+
+        #game-area {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* --- LEADERBOARD & PRE-GAME --- */
+        .pre-game-container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid var(--accent);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        .lb-title { color: var(--highlight); font-size: 1.5rem; margin-bottom: 15px; font-weight: bold; }
+        .lb-list { width: 100%; margin-bottom: 20px; }
+        .lb-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 1.1rem; }
+        .lb-row:first-child { color: #ffd700; font-weight: bold; } /* Gold for 1st */
+        
+        /* --- UNIVERSAL GAME ELEMENTS --- */
+        .action-btn {
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            background: var(--gradient-1);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(233, 69, 96, 0.4);
+            transition: transform 0.1s;
+        }
+        .action-btn:active { transform: scale(0.95); }
+        .score-display { font-size: 3rem; font-weight: bold; font-variant-numeric: tabular-nums; margin-bottom: 10px; }
+        .instruction { margin-bottom: 20px; font-size: 1.2rem; color: #aaa; text-align: center; }
+
+        /* --- GAME 1: CHRONO --- */
+        #chrono-target { color: var(--highlight); font-size: 1.5rem; margin-bottom: 10px; }
+
+        /* --- GAME 2: TOWER STACK --- */
+        #stack-canvas { 
+            border-bottom: 10px solid rgba(255,255,255,0.1); 
+            background: radial-gradient(circle at center, #2a2a4e 0%, #1a1a2e 100%);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* --- GAME 3 & 4: GRIDS --- */
+        .grid-3x3 {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 15px;
+        }
+        .tile {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .tile:active { transform: scale(0.95); }
+        .tile.active { background: white; box-shadow: 0 0 25px white; border-color: white; }
+        .tile.correct { background: #4caf50; box-shadow: 0 0 15px #4caf50; }
+        .tile.wrong { background: #f44336; }
+        .tile.missed { background: #ff9800; opacity: 0.5; }
+
+        /* --- GAME 5: FLOPPY BIRD --- */
+        #floppy-canvas { 
+            background: #70c5ce; 
+            border: 4px solid #fff; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            height: 80vh; width: auto; max-width: 95vw;
+            image-rendering: pixelated; 
+        }
+
+        /* --- GAME 6: VISUAL MEMORY --- */
+        #vm-grid {
+            display: grid;
+            gap: 10px;
+            margin-top: 20px;
+            transition: transform 0.3s;
+        }
+        .vm-tile {
+            background: #2b3b55;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+        .vm-tile.active { background: white; }
+        .vm-tile.correct { background: #4caf50; animation: bounce 0.3s; }
+        .vm-tile.wrong { background: #2b3b55; animation: shake 0.4s; }
+        .vm-tile.missed { background: #e94560; }
+        
+        @keyframes bounce { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+        /* --- MODAL (WIN/LOSE) --- */
+        #modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid var(--highlight);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 90%;
+            width: 400px;
+        }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .modal-title { font-size: 2.5rem; margin-bottom: 10px; }
+        .modal-msg { font-size: 1.2rem; margin-bottom: 20px; opacity: 0.9; }
+        #name-input { 
+            padding: 15px; font-size: 1.2rem; border-radius: 10px; border: none; 
+            margin-bottom: 20px; text-align: center; width: 80%;
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 99;
+        }
+
+        @media (max-width: 700px) {
+            .game-grid { grid-template-columns: 1fr 1fr; }
+            h1 { font-size: 2rem; }
+            .grid-3x3 { grid-template-columns: repeat(3, 80px); grid-template-rows: repeat(3, 80px); }
+        }
+        @media (max-width: 400px) {
+            .game-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MAIN MENU -->
+    <div id="menu-screen">
+        <h1>🏠 Open House Arcade</h1>
+        <div class="subtitle">Select a Game & Win Candy!</div>
+        
+        <div class="game-grid">
+            <div class="game-card" onclick="openGame('chrono')">
+                <div class="game-icon">⏱️</div>
+                <div class="game-title">Chrono Stop</div>
+                <div class="game-desc">Stop exactly at 5.00s</div>
+            </div>
+            <div class="game-card" onclick="openGame('stack')">
+                <div class="game-icon">🏗️</div>
+                <div class="game-title">Tower Stack</div>
+                <div class="game-desc">Rounded & smooth stacking</div>
+            </div>
+            <div class="game-card" onclick="openGame('floppy')">
+                <div class="game-icon">🐦</div>
+                <div class="game-title">Floppy Bird</div>
+                <div class="game-desc">Classic pipe dodging</div>
+            </div>
+            <div class="game-card" onclick="openGame('memory')">
+                <div class="game-icon">🧠</div>
+                <div class="game-title">Simon Says</div>
+                <div class="game-desc">Repeat the pattern</div>
+            </div>
+            <div class="game-card" onclick="openGame('visual')">
+                <div class="game-icon">👀</div>
+                <div class="game-title">Visual Memory</div>
+                <div class="game-desc">Remember the grid tiles</div>
+            </div>
+            <div class="game-card" onclick="openGame('rush')">
+                <div class="game-icon">⚡</div>
+                <div class="game-title">Sugar Rush</div>
+                <div class="game-desc">Speed tapping test</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME INTERFACE -->
+    <div id="game-screen">
+        <div class="nav-bar">
+            <button class="back-btn" onclick="goHome()">← Back to Menu</button>
+            <div id="game-header-title" style="font-weight: bold; font-size: 1.2rem">Game Title</div>
+        </div>
+
+        <div id="game-area">
+            <!-- Dynamic Content -->
+        </div>
+    </div>
+
+    <!-- RESULT/INPUT MODAL -->
+    <div id="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modal-title">Game Over</div>
+            <div class="modal-msg" id="modal-msg">Score: 10</div>
+            
+            <div id="input-section" style="display:none">
+                <div style="margin-bottom:10px; color: #ffd700;">★ NEW HIGH SCORE! ★</div>
+                <input type="text" id="name-input" placeholder="Enter Your Name" maxlength="8">
+                <br>
+                <button class="action-btn" id="save-btn">Save Score</button>
+            </div>
+
+            <button class="action-btn" id="retry-btn" style="margin-top:10px" onclick="closeModal()">Play Again</button>
+        </div>
+    </div>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <script>
+        // --- GLOBAL STATE ---
+        let currentGame = null;
+        let gameInterval = null;
+        let gameState = { running: false, animId: null };
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // --- SCORES / LEADERBOARD SYSTEM ---
+        const GameConfigs = {
+            'chrono': { name: "Chrono Stop", unit: "s diff", sort: 'asc' }, // Lower diff is better
+            'stack': { name: "Tower Stack", unit: "blocks", sort: 'desc' },
+            'floppy': { name: "Floppy Bird", unit: "pipes", sort: 'desc' },
+            'memory': { name: "Simon Says", unit: "level", sort: 'desc' },
+            'visual': { name: "Visual Memory", unit: "level", sort: 'desc' },
+            'rush': { name: "Sugar Rush", unit: "pts", sort: 'desc' }
+        };
+
+        function getScores(id) {
+            const data = localStorage.getItem('arcade_lb_' + id);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveScoreLocal(id, name, score) {
+            let scores = getScores(id);
+            const conf = GameConfigs[id];
+            
+            // Dedupe name: update score if better
+            const idx = scores.findIndex(s => s.name === name);
+            if (idx !== -1) {
+                const old = scores[idx].score;
+                const isBetter = conf.sort === 'asc' ? score < old : score > old;
+                if (isBetter) scores[idx].score = score;
+                else return; // No update needed
+            } else {
+                scores.push({ name, score });
+            }
+
+            // Sort
+            scores.sort((a, b) => {
+                return conf.sort === 'asc' ? a.score - b.score : b.score - a.score;
+            });
+            
+            // Limit to 5
+            scores = scores.slice(0, 5);
+            localStorage.setItem('arcade_lb_' + id, JSON.stringify(scores));
+        }
+
+        function isHighScore(id, score) {
+            const scores = getScores(id);
+            if (scores.length < 5) return true;
+            const worst = scores[scores.length - 1].score;
+            const conf = GameConfigs[id];
+            return conf.sort === 'asc' ? score < worst : score > worst;
+        }
+
+        // --- NAVIGATION & UI FLOW ---
+        
+        function openGame(gameId) {
+            stopAll();
+            currentGame = gameId;
+            document.getElementById('menu-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            document.getElementById('game-header-title').innerText = GameConfigs[gameId].name;
+            
+            showPreGameLeaderboard(gameId);
+        }
+
+        function showPreGameLeaderboard(gameId) {
+            const area = document.getElementById('game-area');
+            const scores = getScores(gameId);
+            const conf = GameConfigs[gameId];
+            
+            let rows = scores.map((s, i) => `
+                <div class="lb-row">
+                    <span>${i+1}. ${s.name}</span>
+                    <span>${s.score} <small>${conf.unit}</small></span>
+                </div>
+            `).join('');
+
+            if(scores.length === 0) rows = "<div style='opacity:0.6; padding:10px 0;'>No scores yet. Be the first!</div>";
+
+            area.innerHTML = `
+                <div class="pre-game-container">
+                    <div class="lb-title">🏆 Hall of Fame</div>
+                    <div class="lb-list">${rows}</div>
+                    <button class="action-btn" onclick="startGame('${gameId}')">START GAME</button>
+                    <div style="margin-top:15px; font-size:0.9rem; opacity:0.7">
+                        ${getInstructions(gameId)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function getInstructions(id) {
+            if(id === 'chrono') return "Stop the timer exactly at 5.00 seconds.";
+            if(id === 'stack') return "Click to drop blocks. Stack high!";
+            if(id === 'floppy') return "Tap or Spacebar to fly.";
+            if(id === 'memory') return "Watch the pattern, then repeat it.";
+            if(id === 'visual') return "Memorize the white tiles.";
+            if(id === 'rush') return "Tap blue tiles fast!";
+            return "";
+        }
+
+        function startGame(gameId) {
+            const area = document.getElementById('game-area');
+            area.innerHTML = ''; // Clear leaderboard
+            
+            if (gameId === 'chrono') initChrono(area);
+            if (gameId === 'stack') initStack(area);
+            if (gameId === 'floppy') initFloppy(area);
+            if (gameId === 'memory') initMemory(area);
+            if (gameId === 'visual') initVisual(area);
+            if (gameId === 'rush') initRush(area);
+        }
+
+        function goHome() {
+            stopAll();
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('menu-screen').style.display = 'flex';
+        }
+
+        function stopAll() {
+            if (gameInterval) clearInterval(gameInterval);
+            if (gameState.animId) cancelAnimationFrame(gameState.animId);
+            gameState.running = false;
+        }
+
+        function handleGameOver(score) {
+            stopAll();
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modal-title');
+            const msg = document.getElementById('modal-msg');
+            const inpDiv = document.getElementById('input-section');
+            const retryBtn = document.getElementById('retry-btn');
+            
+            modal.style.display = 'flex';
+            
+            // Default Message
+            title.innerText = "Game Over";
+            msg.innerText = `Score: ${score}`;
+            retryBtn.style.display = 'inline-block';
+            inpDiv.style.display = 'none';
+
+            // Check High Score
+            if (isHighScore(currentGame, score)) {
+                title.innerText = "Awesome!";
+                inpDiv.style.display = 'block';
+                retryBtn.style.display = 'none'; // Force save first
+                
+                document.getElementById('save-btn').onclick = () => {
+                    const name = document.getElementById('name-input').value || "Guest";
+                    saveScoreLocal(currentGame, name, score);
+                    closeModal();
+                };
+            }
+
+            // Confetti for good performance (arbitrary thresholds)
+            // Just fire if it's a high score or a win condition
+            if (isHighScore(currentGame, score)) fireConfetti();
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            // Reload to leaderboard
+            openGame(currentGame);
+        }
+
+        // ---------------- GAMES ----------------
+
+        // 1. CHRONO STOP
+        function initChrono(container) {
+            container.innerHTML = `
+                <div id="chrono-target">Target: 5.00 Seconds</div>
+                <div class="score-display" id="chrono-display">0.00</div>
+                <button class="action-btn" id="chrono-btn">START</button>
+            `;
+
+            let running = false;
+            let startTime;
+            const display = document.getElementById('chrono-display');
+            const btn = document.getElementById('chrono-btn');
+
+            btn.onclick = () => {
+                if (!running) {
+                    running = true;
+                    startTime = Date.now();
+                    btn.innerText = "STOP!";
+                    btn.style.background = "#ff4444";
+                    gameInterval = setInterval(() => {
+                        let elapsed = (Date.now() - startTime) / 1000;
+                        display.innerText = elapsed.toFixed(2);
+                    }, 10);
+                } else {
+                    clearInterval(gameInterval);
+                    running = false;
+                    let finalTime = parseFloat(display.innerText);
+                    let diff = Math.abs(finalTime - 5.00).toFixed(2); // Score is deviation
+                    handleGameOver(parseFloat(diff));
+                }
+            };
+        }
+
+        // 2. TOWER STACK (Improved Visuals)
+        function initStack(container) {
+            container.innerHTML = `
+                <div class="score-display" id="stack-score" style="font-size:2rem">0</div>
+                <canvas id="stack-canvas" width="320" height="500"></canvas>
+            `;
+            
+            const cvs = document.getElementById('stack-canvas');
+            const c = cvs.getContext('2d');
+            const scoreEl = document.getElementById('stack-score');
+
+            // Responsive canvas
+            if(window.innerWidth < 350) { cvs.width = 280; }
+
+            const blockH = 40;
+            const startW = 200;
+            
+            let stack = []; 
+            let current = { x: 0, w: startW, color: `hsl(0, 70%, 60%)` }; 
+            let speed = 3;
+            let dir = speed;
+            let score = 0;
+            gameState.running = true; 
+            let dropY = cvs.height - blockH - 10;
+            let hue = 0;
+
+            // Base block
+            stack.push({ x: (cvs.width-startW)/2, w: startW, y: dropY, color: `hsl(${hue}, 70%, 50%)` });
+            dropY -= blockH;
+
+            // Helper for rounded rect
+            function roundRect(ctx, x, y, w, h, r, color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(x, y, w, h, r);
+                ctx.fill();
+                // Add highlight
+                ctx.fillStyle = "rgba(255,255,255,0.2)";
+                ctx.beginPath();
+                ctx.roundRect(x, y, w, h/2, [r, r, 0, 0]);
+                ctx.fill();
+            }
+
+            function draw() {
+                if (!gameState.running) return;
+                c.clearRect(0, 0, cvs.width, cvs.height);
+                
+                // Stack
+                stack.forEach(b => roundRect(c, b.x, b.y, b.w, blockH - 2, 6, b.color));
+
+                // Moving Block
+                current.x += dir;
+                if (current.x <= 0 || current.x + current.w >= cvs.width) dir *= -1;
+                
+                roundRect(c, current.x, dropY, current.w, blockH - 2, 6, current.color);
+                
+                gameState.animId = requestAnimationFrame(draw);
+            }
+
+            cvs.onclick = () => {
+                if (!gameState.running) return;
+                const prev = stack[stack.length - 1];
+                
+                // Calc overlap
+                let overlap = current.w - Math.abs(current.x - prev.x);
+                if (overlap <= 0) {
+                    gameState.running = false;
+                    handleGameOver(score);
+                    return;
+                }
+
+                // Snap
+                let newX = current.x < prev.x ? prev.x : current.x;
+                
+                // Add to stack
+                stack.push({ x: newX, w: overlap, y: dropY, color: current.color });
+                score++;
+                scoreEl.innerText = score;
+
+                // Move Camera down if high
+                if (dropY < 100) {
+                    stack.forEach(b => b.y += blockH);
+                } else {
+                    dropY -= blockH;
+                }
+
+                // Next Block Setup
+                hue = (hue + 20) % 360;
+                current.w = overlap;
+                current.x = 0;
+                current.color = `hsl(${hue}, 70%, 60%)`;
+                
+                // Speed up slightly
+                speed += 0.2;
+                dir = dir > 0 ? speed : -speed;
+            };
+            draw();
+        }
+
+        // 3. FLOPPY BIRD (Integrated)
+        function initFloppy(container) {
+            container.innerHTML = `
+                <div id="floppy-score" style="font-size:2rem; font-weight:bold; margin-bottom:10px">0</div>
+                <canvas id="floppy-canvas" width="288" height="512"></canvas>
+            `;
+            
+            const cvs = document.getElementById('floppy-canvas');
+            const scoreDisplay = document.getElementById('floppy-score');
+            const ctx = cvs.getContext('2d');
+            
+            const assets = {
+                bird: new Image(), bg: new Image(), pipe: new Image(), ground: new Image()
+            };
+            assets.bird.src = "https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png";
+            assets.bg.src = "https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png";
+            assets.pipe.src = "https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png";
+            assets.ground.src = "https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/base.png";
+
+            let bird = { x: 50, y: 150, v: 0, r: 12, rotation: 0 };
+            let pipes = [];
+            let frame = 0, score = 0, gravity = 0.25, jump = -4.6, gap = 110, speed = 2, fgX = 0;
+            gameState.running = true;
+
+            function jumpAction(e) {
+                if(e) e.preventDefault();
+                if(gameState.running) bird.v = jump;
+            }
+            
+            cvs.onmousedown = jumpAction;
+            cvs.ontouchstart = jumpAction;
+            document.onkeydown = (e) => { if(e.code === 'Space') jumpAction(e); };
+
+            function loop() {
+                if(!gameState.running) return;
+                bird.v += gravity; bird.y += bird.v;
+                
+                // Rotation
+                if(bird.v < 0) bird.rotation = -25 * Math.PI/180;
+                else if (bird.v > 0) {
+                    bird.rotation += 2 * Math.PI/180;
+                    if(bird.rotation > 1.5) bird.rotation = 1.5;
+                }
+
+                fgX = (fgX - speed) % 336;
+                frame++;
+
+                if (frame % 110 === 0) {
+                    let pipeY = Math.floor(Math.random() * (cvs.height - 112 - gap - 50)) + 50;
+                    pipes.push({ x: cvs.width, y: pipeY, passed: false });
+                }
+
+                pipes.forEach(p => {
+                    p.x -= speed;
+                    // Collision
+                    if (bird.x + 34 > p.x && bird.x < p.x + 52) {
+                        if (bird.y < p.y || bird.y + 24 > p.y + gap) gameState.running = false;
+                    }
+                    if (p.x + 52 < bird.x && !p.passed) { score++; scoreDisplay.innerText = score; p.passed = true; }
+                });
+
+                if (bird.y + 24 >= cvs.height - 112 || bird.y <= 0) gameState.running = false;
+                if (pipes.length > 0 && pipes[0].x < -60) pipes.shift();
+
+                // Draw
+                ctx.drawImage(assets.bg, 0, 0, cvs.width, cvs.height);
+                pipes.forEach(p => {
+                    ctx.save();
+                    ctx.translate(p.x + 26, p.y);
+                    ctx.rotate(Math.PI);
+                    ctx.drawImage(assets.pipe, -26, 0);
+                    ctx.restore();
+                    ctx.drawImage(assets.pipe, p.x, p.y + gap);
+                });
+                
+                let gy = cvs.height - 112;
+                ctx.drawImage(assets.ground, fgX, gy);
+                ctx.drawImage(assets.ground, fgX + 336, gy);
+
+                ctx.save();
+                ctx.translate(bird.x + 17, bird.y + 12);
+                ctx.rotate(bird.rotation);
+                ctx.drawImage(assets.bird, -17, -12);
+                ctx.restore();
+
+                if(gameState.running) gameState.animId = requestAnimationFrame(loop);
+                else handleGameOver(score);
+            }
+            loop();
+        }
+
+        // 4. SIMON SAYS
+        function initMemory(container) {
+            container.innerHTML = `
+                <div class="score-display" id="mem-level">Lvl 1</div>
+                <div class="grid-3x3" id="mem-grid"></div>
+            `;
+            const grid = document.getElementById('mem-grid');
+            const tiles = [];
+            for(let i=0; i<9; i++) {
+                let t = document.createElement('div');
+                t.className = 'tile';
+                t.onclick = () => handleInput(i);
+                grid.appendChild(t);
+                tiles.push(t);
+            }
+
+            let seq = [], step = 0, inputActive = false, level = 1;
+
+            function playSeq() {
+                inputActive = false;
+                step = 0;
+                document.getElementById('mem-level').innerText = "Watch";
+                seq.push(Math.floor(Math.random()*9));
+                
+                let i=0;
+                let int = setInterval(() => {
+                    if(i >= seq.length) {
+                        clearInterval(int);
+                        inputActive = true;
+                        document.getElementById('mem-level').innerText = `Lvl ${level}`;
+                        return;
+                    }
+                    const id = seq[i];
+                    tiles[id].classList.add('active');
+                    setTimeout(()=>tiles[id].classList.remove('active'), 400);
+                    i++;
+                }, 600);
+            }
+
+            function handleInput(id) {
+                if(!inputActive) return;
+                tiles[id].classList.add('active');
+                setTimeout(()=>tiles[id].classList.remove('active'), 150);
+
+                if(id === seq[step]) {
+                    step++;
+                    if(step === seq.length) {
+                        level++;
+                        setTimeout(playSeq, 1000);
+                    }
+                } else {
+                    tiles[id].classList.add('wrong');
+                    setTimeout(()=>handleGameOver(level), 500);
+                }
+            }
+            setTimeout(playSeq, 1000);
+        }
+
+        // 5. VISUAL MEMORY (New Game)
+        function initVisual(container) {
+            container.innerHTML = `
+                <div style="display:flex; gap:20px; font-size:1.5rem; font-weight:bold;">
+                    <div>Lvl: <span id="vm-lvl">1</span></div>
+                    <div>Lives: <span id="vm-lives">3</span></div>
+                </div>
+                <div id="vm-grid"></div>
+            `;
+
+            let level = 1, lives = 3, gridSize = 3;
+            let activeTiles = [], inputActive = false, hits = 0;
+
+            function setupLevel() {
+                hits = 0;
+                inputActive = false;
+                document.getElementById('vm-lvl').innerText = level;
+                
+                // Grid scaling: level 1-2(3x3), 3-5(4x4), 6+(5x5)
+                gridSize = level < 3 ? 3 : (level < 6 ? 4 : 5);
+                const tileCount = level + 2; // Tiles to remember increases
+
+                const grid = document.getElementById('vm-grid');
+                grid.style.gridTemplateColumns = `repeat(${gridSize}, 60px)`;
+                grid.style.gridTemplateRows = `repeat(${gridSize}, 60px)`;
+                grid.innerHTML = '';
+
+                let tiles = [];
+                for(let i=0; i<gridSize*gridSize; i++) {
+                    let t = document.createElement('div');
+                    t.className = 'vm-tile';
+                    t.onclick = () => handleVmClick(t, i);
+                    grid.appendChild(t);
+                    tiles.push(t);
+                }
+
+                // Select Random Tiles
+                activeTiles = [];
+                while(activeTiles.length < tileCount) {
+                    let r = Math.floor(Math.random() * (gridSize*gridSize));
+                    if(!activeTiles.includes(r)) activeTiles.push(r);
+                }
+
+                // Show Sequence
+                setTimeout(() => {
+                    activeTiles.forEach(idx => tiles[idx].classList.add('active'));
+                    setTimeout(() => {
+                        activeTiles.forEach(idx => tiles[idx].classList.remove('active'));
+                        inputActive = true;
+                    }, 1000 + (level*200)); // Show longer for higher levels
+                }, 500);
+            }
+
+            function handleVmClick(el, idx) {
+                if(!inputActive || el.classList.contains('correct')) return;
+
+                if(activeTiles.includes(idx)) {
+                    el.classList.add('correct');
+                    hits++;
+                    if(hits === activeTiles.length) {
+                        level++;
+                        setTimeout(setupLevel, 800);
+                    }
+                } else {
+                    el.classList.add('wrong');
+                    lives--;
+                    document.getElementById('vm-lives').innerText = lives;
+                    
+                    // Show missed tiles briefly
+                    if(lives <= 0) {
+                        inputActive = false;
+                        activeTiles.forEach(i => document.querySelectorAll('.vm-tile')[i].classList.add('missed'));
+                        setTimeout(() => handleGameOver(level), 1500);
+                    }
+                }
+            }
+            setupLevel();
+        }
+
+        // 6. SUGAR RUSH
+        function initRush(container) {
+            container.innerHTML = `
+                <div class="score-display" id="rush-score">0</div>
+                <div class="grid-3x3" id="rush-grid"></div>
+                <div id="rush-timer" style="margin-top:10px; color:#aaa;">Time: 10s</div>
+            `;
+            const grid = document.getElementById('rush-grid');
+            const tiles = [];
+            let active = -1, score = 0, time = 10;
+            
+            for(let i=0; i<9; i++) {
+                let t = document.createElement('div');
+                t.className = 'tile';
+                t.onmousedown = () => {
+                    if(i === active) {
+                        score++;
+                        document.getElementById('rush-score').innerText = score;
+                        move();
+                    }
+                };
+                grid.appendChild(t);
+                tiles.push(t);
+            }
+
+            function move() {
+                if(active !== -1) tiles[active].classList.remove('active');
+                let next;
+                do { next = Math.floor(Math.random()*9); } while(next === active);
+                active = next;
+                tiles[active].classList.add('active');
+            }
+
+            move();
+            gameInterval = setInterval(() => {
+                time--;
+                document.getElementById('rush-timer').innerText = "Time: " + time + "s";
+                if(time <= 0) {
+                    clearInterval(gameInterval);
+                    handleGameOver(score);
+                }
+            }, 1000);
+        }
+
+        // --- CONFETTI ---
+        let particles = [];
+        function fireConfetti() {
+            particles = [];
+            for(let i=0; i<80; i++) particles.push({
+                x: canvas.width/2, y: canvas.height/2,
+                vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20,
+                color: `hsl(${Math.random()*360},100%,50%)`, life: 100
+            });
+            updateConfetti();
+        }
+        function updateConfetti() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            let active = false;
+            particles.forEach(p => {
+                if(p.life > 0) {
+                    active = true; p.x+=p.vx; p.y+=p.vy; p.vy+=0.5; p.life--;
+                    ctx.fillStyle = p.color; ctx.fillRect(p.x,p.y,8,8);
+                }
+            });
+            if(active) requestAnimationFrame(updateConfetti);
+        }
+
+    </script>
+</body>
+</html>
