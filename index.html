@@ -62,6 +62,8 @@
             width: 95%;
             max-width: 1000px;
             padding: 10px;
+            overflow-y: auto; 
+            max-height: 85vh;
         }
 
         .game-card {
@@ -132,6 +134,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            padding: 20px;
         }
 
         /* --- LEADERBOARD & PRE-GAME --- */
@@ -166,10 +169,9 @@
         .score-display { font-size: 3rem; font-weight: bold; font-variant-numeric: tabular-nums; margin-bottom: 10px; }
         .instruction { margin-bottom: 20px; font-size: 1.2rem; color: #aaa; text-align: center; }
 
-        /* --- GAME 1: CHRONO --- */
+        /* --- GAME SPECIFIC STYLES --- */
         #chrono-target { color: var(--highlight); font-size: 1.5rem; margin-bottom: 10px; }
-
-        /* --- GAME 2: TOWER STACK --- */
+        
         #stack-canvas { 
             border-bottom: 10px solid rgba(255,255,255,0.1); 
             background: radial-gradient(circle at center, #2a2a4e 0%, #1a1a2e 100%);
@@ -177,7 +179,6 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        /* --- GAME 3 & 4: GRIDS --- */
         .grid-3x3 {
             display: grid;
             grid-template-columns: repeat(3, 100px);
@@ -198,7 +199,6 @@
         .tile.wrong { background: #f44336; }
         .tile.missed { background: #ff9800; opacity: 0.5; }
 
-        /* --- GAME 5: FLOPPY BIRD --- */
         #floppy-canvas { 
             background: #70c5ce; 
             border: 4px solid #fff; 
@@ -209,29 +209,44 @@
             image-rendering: pixelated; 
         }
 
-        /* --- GAME 6: VISUAL MEMORY --- */
         #vm-grid {
-            display: grid;
-            gap: 10px;
-            margin-top: 20px;
-            transition: transform 0.3s;
+            display: grid; gap: 10px; margin-top: 20px; transition: transform 0.3s;
         }
         .vm-tile {
-            background: #2b3b55;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.1s, background 0.2s;
+            background: #2b3b55; border-radius: 8px; cursor: pointer; transition: transform 0.1s, background 0.2s;
         }
         .vm-tile.active { background: white; }
         .vm-tile.correct { background: #4caf50; animation: bounce 0.3s; }
         .vm-tile.wrong { background: #2b3b55; animation: shake 0.4s; }
         .vm-tile.missed { background: #e94560; }
 
-        /* --- GAME 7: NUMBER MEMORY --- */
         #num-input {
             padding: 15px; font-size: 1.5rem; border-radius: 10px; border: none; 
             width: 250px; text-align: center; margin-bottom: 20px;
         }
+
+        #react-box {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: #f44336; cursor: pointer; border-radius: 10px;
+            transition: background 0.1s;
+        }
+
+        /* --- SNAKE --- */
+        #snake-canvas {
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            /* Ensure it fits screen */
+            max-width: 95vw;
+            max-height: 70vh;
+        }
+        .snake-option {
+            background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px;
+            margin: 5px; cursor: pointer; display: inline-block; width: 120px;
+            border: 2px solid transparent;
+        }
+        .snake-option.selected { border-color: var(--highlight); background: rgba(233, 69, 96, 0.2); }
+
         
         @keyframes bounce { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
         @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
@@ -265,11 +280,8 @@
             margin-bottom: 20px; text-align: center; width: 80%;
         }
 
-        /* Confetti Canvas */
         #confetti-canvas {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 99;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99;
         }
 
         @media (max-width: 700px) {
@@ -305,6 +317,16 @@
                 <div class="game-title">Floppy Bird</div>
                 <div class="game-desc">Classic pipe dodging</div>
             </div>
+            <div class="game-card" onclick="openGame('snake')">
+                <div class="game-icon">🐍</div>
+                <div class="game-title">Snake</div>
+                <div class="game-desc">Classic & No Walls</div>
+            </div>
+            <div class="game-card" onclick="openGame('reaction')">
+                <div class="game-icon">⚡</div>
+                <div class="game-title">Reaction Time</div>
+                <div class="game-desc">Test your reflexes</div>
+            </div>
             <div class="game-card" onclick="openGame('memory')">
                 <div class="game-icon">🧠</div>
                 <div class="game-title">Sequence Memory</div>
@@ -321,7 +343,7 @@
                 <div class="game-desc">Memorize long numbers</div>
             </div>
             <div class="game-card" onclick="openGame('rush')">
-                <div class="game-icon">⚡</div>
+                <div class="game-icon">🍬</div>
                 <div class="game-title">Sugar Rush</div>
                 <div class="game-desc">Speed tapping test</div>
             </div>
@@ -371,13 +393,15 @@
 
         // --- SCORES / LEADERBOARD SYSTEM ---
         const GameConfigs = {
-            'chrono': { name: "Chrono Stop", unit: "s diff", sort: 'asc' }, // Lower diff is better
+            'chrono': { name: "Chrono Stop", unit: "s diff", sort: 'asc' }, 
             'stack': { name: "Tower Stack", unit: "blocks", sort: 'desc' },
             'floppy': { name: "Floppy Bird", unit: "pipes", sort: 'desc' },
+            'reaction': { name: "Reaction Time", unit: "ms", sort: 'asc' }, 
             'memory': { name: "Sequence Memory", unit: "level", sort: 'desc' },
             'visual': { name: "Visual Memory", unit: "level", sort: 'desc' },
             'number': { name: "Number Memory", unit: "level", sort: 'desc' },
-            'rush': { name: "Sugar Rush", unit: "pts", sort: 'desc' }
+            'rush': { name: "Sugar Rush", unit: "pts", sort: 'desc' },
+            'snake': { name: "Snake", unit: "apples", sort: 'desc' }
         };
 
         function getScores(id) {
@@ -389,23 +413,20 @@
             let scores = getScores(id);
             const conf = GameConfigs[id];
             
-            // Dedupe name: update score if better
             const idx = scores.findIndex(s => s.name === name);
             if (idx !== -1) {
                 const old = scores[idx].score;
                 const isBetter = conf.sort === 'asc' ? score < old : score > old;
                 if (isBetter) scores[idx].score = score;
-                else return; // No update needed
+                else return; 
             } else {
                 scores.push({ name, score });
             }
 
-            // Sort
             scores.sort((a, b) => {
                 return conf.sort === 'asc' ? a.score - b.score : b.score - a.score;
             });
             
-            // Limit to 5
             scores = scores.slice(0, 5);
             localStorage.setItem('arcade_lb_' + id, JSON.stringify(scores));
         }
@@ -460,24 +481,28 @@
             if(id === 'chrono') return "Stop the timer exactly at 5.00 seconds.";
             if(id === 'stack') return "Click to drop blocks. Stack high!";
             if(id === 'floppy') return "Tap or Spacebar to fly.";
+            if(id === 'reaction') return "Wait for green, then click fast!";
             if(id === 'memory') return "Watch the pattern, then repeat it.";
             if(id === 'visual') return "Memorize the white tiles.";
             if(id === 'number') return "Memorize the number shown.";
             if(id === 'rush') return "Tap blue tiles fast!";
+            if(id === 'snake') return "Eat apples. Don't hit walls or yourself.";
             return "";
         }
 
         function startGame(gameId) {
             const area = document.getElementById('game-area');
-            area.innerHTML = ''; // Clear leaderboard
+            area.innerHTML = ''; 
             
             if (gameId === 'chrono') initChrono(area);
             if (gameId === 'stack') initStack(area);
             if (gameId === 'floppy') initFloppy(area);
+            if (gameId === 'reaction') initReaction(area);
             if (gameId === 'memory') initMemory(area);
             if (gameId === 'visual') initVisual(area);
             if (gameId === 'number') initNumber(area);
             if (gameId === 'rush') initRush(area);
+            if (gameId === 'snake') initSnake(area);
         }
 
         function goHome() {
@@ -502,17 +527,15 @@
             
             modal.style.display = 'flex';
             
-            // Default Message
             title.innerText = "Game Over";
             msg.innerText = `Score: ${score}`;
             retryBtn.style.display = 'inline-block';
             inpDiv.style.display = 'none';
 
-            // Check High Score
             if (isHighScore(currentGame, score)) {
                 title.innerText = "Awesome!";
                 inpDiv.style.display = 'block';
-                retryBtn.style.display = 'none'; // Force save first
+                retryBtn.style.display = 'none'; 
                 
                 document.getElementById('save-btn').onclick = () => {
                     const name = document.getElementById('name-input').value || "Guest";
@@ -521,14 +544,11 @@
                 };
             }
 
-            // Confetti for good performance (arbitrary thresholds)
-            // Just fire if it's a high score or a win condition
             if (isHighScore(currentGame, score)) fireConfetti();
         }
 
         function closeModal() {
             document.getElementById('modal').style.display = 'none';
-            // Reload to leaderboard
             openGame(currentGame);
         }
 
@@ -561,13 +581,13 @@
                     clearInterval(gameInterval);
                     running = false;
                     let finalTime = parseFloat(display.innerText);
-                    let diff = Math.abs(finalTime - 5.00).toFixed(2); // Score is deviation
+                    let diff = Math.abs(finalTime - 5.00).toFixed(2); 
                     handleGameOver(parseFloat(diff));
                 }
             };
         }
 
-        // 2. TOWER STACK (Improved Visuals)
+        // 2. TOWER STACK
         function initStack(container) {
             container.innerHTML = `
                 <div class="score-display" id="stack-score" style="font-size:2rem">0</div>
@@ -578,7 +598,6 @@
             const c = cvs.getContext('2d');
             const scoreEl = document.getElementById('stack-score');
 
-            // Responsive canvas
             if(window.innerWidth < 350) { cvs.width = 280; }
 
             const blockH = 40;
@@ -593,17 +612,14 @@
             let dropY = cvs.height - blockH - 10;
             let hue = 0;
 
-            // Base block
             stack.push({ x: (cvs.width-startW)/2, w: startW, y: dropY, color: `hsl(${hue}, 70%, 50%)` });
             dropY -= blockH;
 
-            // Helper for rounded rect
             function roundRect(ctx, x, y, w, h, r, color) {
                 ctx.fillStyle = color;
                 ctx.beginPath();
                 ctx.roundRect(x, y, w, h, r);
                 ctx.fill();
-                // Add highlight
                 ctx.fillStyle = "rgba(255,255,255,0.2)";
                 ctx.beginPath();
                 ctx.roundRect(x, y, w, h/2, [r, r, 0, 0]);
@@ -614,10 +630,8 @@
                 if (!gameState.running) return;
                 c.clearRect(0, 0, cvs.width, cvs.height);
                 
-                // Stack
                 stack.forEach(b => roundRect(c, b.x, b.y, b.w, blockH - 2, 6, b.color));
 
-                // Moving Block
                 current.x += dir;
                 if (current.x <= 0 || current.x + current.w >= cvs.width) dir *= -1;
                 
@@ -630,7 +644,6 @@
                 if (!gameState.running) return;
                 const prev = stack[stack.length - 1];
                 
-                // Calc overlap
                 let overlap = current.w - Math.abs(current.x - prev.x);
                 if (overlap <= 0) {
                     gameState.running = false;
@@ -638,35 +651,28 @@
                     return;
                 }
 
-                // Snap
                 let newX = current.x < prev.x ? prev.x : current.x;
-                
-                // Add to stack
                 stack.push({ x: newX, w: overlap, y: dropY, color: current.color });
                 score++;
                 scoreEl.innerText = score;
 
-                // Move Camera down if high
                 if (dropY < 100) {
                     stack.forEach(b => b.y += blockH);
                 } else {
                     dropY -= blockH;
                 }
 
-                // Next Block Setup
                 hue = (hue + 20) % 360;
                 current.w = overlap;
                 current.x = 0;
                 current.color = `hsl(${hue}, 70%, 60%)`;
-                
-                // Speed up slightly
                 speed += 0.2;
                 dir = dir > 0 ? speed : -speed;
             };
             draw();
         }
 
-        // 3. FLOPPY BIRD (Integrated)
+        // 3. FLOPPY BIRD
         function initFloppy(container) {
             container.innerHTML = `
                 <div id="floppy-score" style="font-size:2rem; font-weight:bold; margin-bottom:10px">0</div>
@@ -703,7 +709,6 @@
                 if(!gameState.running) return;
                 bird.v += gravity; bird.y += bird.v;
                 
-                // Rotation
                 if(bird.v < 0) bird.rotation = -25 * Math.PI/180;
                 else if (bird.v > 0) {
                     bird.rotation += 2 * Math.PI/180;
@@ -720,7 +725,6 @@
 
                 pipes.forEach(p => {
                     p.x -= speed;
-                    // Collision
                     if (bird.x + 34 > p.x && bird.x < p.x + 52) {
                         if (bird.y < p.y || bird.y + 24 > p.y + gap) gameState.running = false;
                     }
@@ -730,7 +734,6 @@
                 if (bird.y + 24 >= cvs.height - 112 || bird.y <= 0) gameState.running = false;
                 if (pipes.length > 0 && pipes[0].x < -60) pipes.shift();
 
-                // Draw
                 ctx.drawImage(assets.bg, 0, 0, cvs.width, cvs.height);
                 pipes.forEach(p => {
                     ctx.save();
@@ -833,9 +836,8 @@
                 inputActive = false;
                 document.getElementById('vm-lvl').innerText = level;
                 
-                // Grid scaling: level 1-2(3x3), 3-5(4x4), 6+(5x5)
                 gridSize = level < 3 ? 3 : (level < 6 ? 4 : 5);
-                const tileCount = level + 2; // Tiles to remember increases
+                const tileCount = level + 2; 
 
                 const grid = document.getElementById('vm-grid');
                 grid.style.gridTemplateColumns = `repeat(${gridSize}, 60px)`;
@@ -851,20 +853,18 @@
                     tiles.push(t);
                 }
 
-                // Select Random Tiles
                 activeTiles = [];
                 while(activeTiles.length < tileCount) {
                     let r = Math.floor(Math.random() * (gridSize*gridSize));
                     if(!activeTiles.includes(r)) activeTiles.push(r);
                 }
 
-                // Show Sequence
                 setTimeout(() => {
                     activeTiles.forEach(idx => tiles[idx].classList.add('active'));
                     setTimeout(() => {
                         activeTiles.forEach(idx => tiles[idx].classList.remove('active'));
                         inputActive = true;
-                    }, 1000 + (level*200)); // Show longer for higher levels
+                    }, 1000 + (level*200)); 
                 }, 500);
             }
 
@@ -883,7 +883,6 @@
                     lives--;
                     document.getElementById('vm-lives').innerText = lives;
                     
-                    // Show missed tiles briefly
                     if(lives <= 0) {
                         inputActive = false;
                         activeTiles.forEach(i => document.querySelectorAll('.vm-tile')[i].classList.add('missed'));
@@ -894,28 +893,24 @@
             setupLevel();
         }
 
-        // 6. NUMBER MEMORY (New Game)
+        // 6. NUMBER MEMORY
         function initNumber(container) {
             let level = 1;
             
             function startLevel() {
-                // Generate n-digit number
                 let numStr = "";
                 for(let i=0; i<level; i++) numStr += Math.floor(Math.random()*10);
                 
-                // Display
                 container.innerHTML = `
                     <div style="font-size: 2rem; margin-bottom: 20px;">Level ${level}</div>
                     <div style="font-size: 4rem; font-weight: bold; animation: popIn 0.3s;">${numStr}</div>
                     <div id="num-bar" style="width: 100%; height: 5px; background: white; margin-top: 20px; transition: width 0.1s linear;"></div>
                 `;
                 
-                // Bar Animation
                 setTimeout(() => {
                      const bar = document.getElementById('num-bar');
                      if(bar) {
                          bar.style.width = '0%';
-                         // Time: 1s base + 0.5s per digit
                          const time = 1000 + (level * 600);
                          bar.style.transition = `width ${time}ms linear`;
                          setTimeout(() => showInput(numStr), time);
@@ -956,7 +951,6 @@
                 btn.onclick = check;
                 input.onkeydown = (e) => { if(e.key === 'Enter') check(); };
             }
-            
             startLevel();
         }
 
@@ -1002,6 +996,276 @@
                     handleGameOver(score);
                 }
             }, 1000);
+        }
+
+        // 8. REACTION TIME
+        function initReaction(container) {
+            container.innerHTML = `
+                <div id="react-box">
+                    <div style="font-size:4rem; font-weight:bold;">Wait for Green...</div>
+                    <div style="font-size:1.5rem; opacity:0.8; margin-top:20px;">Click immediately when color changes</div>
+                </div>
+            `;
+
+            const box = document.getElementById('react-box');
+            let state = 'waiting'; 
+            let startTime = 0;
+            let timer = null;
+
+            function start() {
+                state = 'waiting';
+                box.style.background = '#f44336'; 
+                box.innerHTML = `
+                    <div style="font-size:4rem; font-weight:bold;">Wait for Green...</div>
+                    <div style="font-size:1.5rem; opacity:0.8; margin-top:20px;">Click immediately when color changes</div>
+                `;
+
+                const delay = 2000 + Math.random() * 3000;
+                
+                timer = setTimeout(() => {
+                    state = 'ready';
+                    startTime = Date.now();
+                    box.style.background = '#4caf50'; 
+                    box.innerHTML = `<div style="font-size:5rem; font-weight:bold;">CLICK!</div>`;
+                }, delay);
+            }
+
+            box.onmousedown = () => {
+                if(state === 'waiting') {
+                    clearTimeout(timer);
+                    state = 'early';
+                    box.style.background = '#ff9800'; 
+                    box.innerHTML = `
+                        <div style="font-size:3rem;">Too Early!</div>
+                        <div style="font-size:1.5rem; margin-top:10px">Click to try again</div>
+                    `;
+                } else if (state === 'early') {
+                    start();
+                } else if (state === 'ready') {
+                    const time = Date.now() - startTime;
+                    state = 'done';
+                    handleGameOver(time);
+                }
+            };
+
+            start();
+        }
+
+        // 9. SNAKE (Google Style)
+        function initSnake(container) {
+            // Mode Select UI
+            container.innerHTML = `
+                <div id="snake-menu" style="text-align:center; width:100%">
+                    <div style="font-size:1.5rem; margin-bottom:10px">Select Mode</div>
+                    <div style="margin-bottom:20px">
+                        <div class="snake-option selected" id="opt-wall-on" onclick="setSnakeMode('wall', true)">🧱 Walls</div>
+                        <div class="snake-option" id="opt-wall-off" onclick="setSnakeMode('wall', false)">🕊️ No Walls</div>
+                    </div>
+                    <div style="font-size:1.5rem; margin-bottom:10px">Speed</div>
+                    <div style="margin-bottom:30px">
+                        <div class="snake-option selected" id="opt-spd-norm" onclick="setSnakeMode('speed', 100)">🐢 Normal</div>
+                        <div class="snake-option" id="opt-spd-fast" onclick="setSnakeMode('speed', 60)">🐇 Fast</div>
+                    </div>
+                    <button class="action-btn" onclick="startSnakeLoop()">PLAY</button>
+                </div>
+                <canvas id="snake-canvas" width="400" height="400" style="display:none"></canvas>
+                <div id="snake-score" style="display:none; font-size:2rem; margin-top:10px; font-weight:bold">0</div>
+                <div id="snake-ctrl" style="display:none; margin-top:5px; opacity:0.6; font-size:0.8rem">Arrow Keys or Swipe</div>
+            `;
+
+            let walls = true;
+            let speed = 100;
+
+            window.setSnakeMode = (type, val) => {
+                if(type === 'wall') {
+                    walls = val;
+                    document.getElementById('opt-wall-on').className = val ? 'snake-option selected' : 'snake-option';
+                    document.getElementById('opt-wall-off').className = !val ? 'snake-option selected' : 'snake-option';
+                } else {
+                    speed = val;
+                    document.getElementById('opt-spd-norm').className = val === 100 ? 'snake-option selected' : 'snake-option';
+                    document.getElementById('opt-spd-fast').className = val === 60 ? 'snake-option selected' : 'snake-option';
+                }
+            };
+
+            window.startSnakeLoop = () => {
+                document.getElementById('snake-menu').style.display = 'none';
+                const cvs = document.getElementById('snake-canvas');
+                const scoreEl = document.getElementById('snake-score');
+                const ctrl = document.getElementById('snake-ctrl');
+                cvs.style.display = 'block';
+                scoreEl.style.display = 'block';
+                ctrl.style.display = 'block';
+
+                const ctx = cvs.getContext('2d');
+                const tileCount = 17; // Google snake style odd grid
+                const tileSize = cvs.width / tileCount;
+                
+                let snake = [{x: 8, y: 12}, {x: 8, y: 13}, {x: 8, y: 14}];
+                let dx = 0, dy = -1;
+                let nextDx = 0, nextDy = -1;
+                let apple = {x: 8, y: 4};
+                let score = 0;
+                let inputs = []; // Queue inputs
+
+                gameState.running = true;
+
+                // Input handling
+                const keyMap = { 
+                    'ArrowUp': [0, -1], 'ArrowDown': [0, 1], 
+                    'ArrowLeft': [-1, 0], 'ArrowRight': [1, 0] 
+                };
+
+                document.onkeydown = (e) => {
+                    if(keyMap[e.key]) {
+                        e.preventDefault();
+                        const [tx, ty] = keyMap[e.key];
+                        // Prevent instant 180 turn in queue
+                        const lastMove = inputs.length > 0 ? inputs[inputs.length-1] : [dx, dy];
+                        if (lastMove[0] + tx !== 0 || lastMove[1] + ty !== 0) {
+                            inputs.push([tx, ty]);
+                        }
+                    }
+                };
+
+                // Touch Swipe
+                let tsX, tsY;
+                cvs.ontouchstart = (e) => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; };
+                cvs.ontouchend = (e) => {
+                    let teX = e.changedTouches[0].clientX;
+                    let teY = e.changedTouches[0].clientY;
+                    let dxT = teX - tsX;
+                    let dyT = teY - tsY;
+                    let move = null;
+                    if(Math.abs(dxT) > Math.abs(dyT)) move = dxT > 0 ? [1, 0] : [-1, 0];
+                    else move = dyT > 0 ? [0, 1] : [0, -1];
+                    
+                    const lastMove = inputs.length > 0 ? inputs[inputs.length-1] : [dx, dy];
+                    if (lastMove[0] + move[0] !== 0 || lastMove[1] + move[1] !== 0) {
+                        inputs.push(move);
+                    }
+                };
+
+                function update() {
+                    if(!gameState.running) return;
+
+                    // Process input
+                    if(inputs.length > 0) {
+                        const move = inputs.shift();
+                        dx = move[0]; dy = move[1];
+                    }
+
+                    let head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+                    // Wall collision
+                    if(walls) {
+                        if(head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                            gameState.running = false;
+                            handleGameOver(score);
+                            return;
+                        }
+                    } else {
+                        // Wrap
+                        if(head.x < 0) head.x = tileCount - 1;
+                        if(head.x >= tileCount) head.x = 0;
+                        if(head.y < 0) head.y = tileCount - 1;
+                        if(head.y >= tileCount) head.y = 0;
+                    }
+
+                    // Self collision
+                    for(let part of snake) {
+                        if(head.x === part.x && head.y === part.y) {
+                            gameState.running = false;
+                            handleGameOver(score);
+                            return;
+                        }
+                    }
+
+                    snake.unshift(head);
+
+                    // Apple
+                    if(head.x === apple.x && head.y === apple.y) {
+                        score++;
+                        scoreEl.innerText = score;
+                        // New apple position
+                        while(true) {
+                            apple.x = Math.floor(Math.random() * tileCount);
+                            apple.y = Math.floor(Math.random() * tileCount);
+                            let hit = snake.some(p => p.x === apple.x && p.y === apple.y);
+                            if(!hit) break;
+                        }
+                    } else {
+                        snake.pop();
+                    }
+                }
+
+                function draw() {
+                    if(!gameState.running) return;
+                    
+                    // Background Checkerboard (Google Style)
+                    for(let r=0; r<tileCount; r++) {
+                        for(let c=0; c<tileCount; c++) {
+                            ctx.fillStyle = (r+c)%2 === 0 ? '#aad751' : '#a2d149';
+                            ctx.fillRect(c*tileSize, r*tileSize, tileSize, tileSize);
+                        }
+                    }
+
+                    // Apple
+                    let ax = apple.x * tileSize + tileSize/2;
+                    let ay = apple.y * tileSize + tileSize/2;
+                    ctx.fillStyle = '#e7471d';
+                    ctx.beginPath();
+                    ctx.arc(ax, ay, tileSize/2 - 2, 0, Math.PI*2);
+                    ctx.fill();
+                    // Apple Leaf
+                    ctx.fillStyle = '#579e2d'; // leaf green
+                    ctx.beginPath(); // Simplified leaf
+                    ctx.ellipse(ax, ay-10, 6, 3, Math.PI/4, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Snake
+                    ctx.fillStyle = '#4674e9'; // Google Blue
+                    // Draw Head separately for eyes
+                    let head = snake[0];
+                    let hx = head.x * tileSize;
+                    let hy = head.y * tileSize;
+                    
+                    // Body
+                    snake.forEach((p, i) => {
+                        // slightly smaller rects for segment feel
+                        // ctx.fillRect(p.x*tileSize + 1, p.y*tileSize + 1, tileSize-2, tileSize-2);
+                        // Or smooth connect? Google snake is segmented but tight
+                        ctx.fillRect(p.x*tileSize, p.y*tileSize, tileSize, tileSize);
+                    });
+
+                    // Eyes
+                    ctx.fillStyle = 'white';
+                    let ex = hx + tileSize/2;
+                    let ey = hy + tileSize/2;
+                    let off = tileSize/4;
+                    
+                    // Eye positions based on direction
+                    let eye1 = {x: ex, y: ey}, eye2 = {x: ex, y: ey};
+                    if(dy === -1) { eye1.x -= off; eye1.y -= off; eye2.x += off; eye2.y -= off; } // Up
+                    else if(dy === 1) { eye1.x -= off; eye1.y += off; eye2.x += off; eye2.y += off; } // Down
+                    else if(dx === -1) { eye1.x -= off; eye1.y -= off; eye2.x -= off; eye2.y += off; } // Left
+                    else { eye1.x += off; eye1.y -= off; eye2.x += off; eye2.y += off; } // Right
+
+                    ctx.beginPath(); ctx.arc(eye1.x, eye1.y, 3, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(eye2.x, eye2.y, 3, 0, Math.PI*2); ctx.fill();
+                    
+                    // Pupils
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath(); ctx.arc(eye1.x, eye1.y, 1.5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(eye2.x, eye2.y, 1.5, 0, Math.PI*2); ctx.fill();
+
+                }
+
+                gameInterval = setInterval(() => {
+                    update();
+                    requestAnimationFrame(draw);
+                }, speed);
+            };
         }
 
         // --- CONFETTI ---
