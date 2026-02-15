@@ -1051,7 +1051,7 @@
             start();
         }
 
-        // 9. SNAKE (Google Style)
+        // 9. SNAKE (Google Style + 60FPS Smooth)
         function initSnake(container) {
             // Mode Select UI
             container.innerHTML = `
@@ -1063,6 +1063,7 @@
                     </div>
                     <div style="font-size:1.5rem; margin-bottom:10px">Speed</div>
                     <div style="margin-bottom:30px">
+                        <div class="snake-option" id="opt-spd-slow" onclick="setSnakeMode('speed', 150)">🐌 Slow</div>
                         <div class="snake-option selected" id="opt-spd-norm" onclick="setSnakeMode('speed', 100)">🐢 Normal</div>
                         <div class="snake-option" id="opt-spd-fast" onclick="setSnakeMode('speed', 60)">🐇 Fast</div>
                     </div>
@@ -1083,6 +1084,7 @@
                     document.getElementById('opt-wall-off').className = !val ? 'snake-option selected' : 'snake-option';
                 } else {
                     speed = val;
+                    document.getElementById('opt-spd-slow').className = val === 150 ? 'snake-option selected' : 'snake-option';
                     document.getElementById('opt-spd-norm').className = val === 100 ? 'snake-option selected' : 'snake-option';
                     document.getElementById('opt-spd-fast').className = val === 60 ? 'snake-option selected' : 'snake-option';
                 }
@@ -1102,12 +1104,12 @@
                 const tileSize = cvs.width / tileCount;
                 
                 let snake = [{x: 8, y: 12}, {x: 8, y: 13}, {x: 8, y: 14}];
+                let prevSnake = JSON.parse(JSON.stringify(snake)); // State for interpolation
+                
                 let dx = 0, dy = -1;
-                let nextDx = 0, nextDy = -1;
                 let apple = {x: 8, y: 4};
                 let score = 0;
-                let inputs = []; // Queue inputs
-
+                let inputs = []; 
                 gameState.running = true;
 
                 // Input handling
@@ -1120,11 +1122,8 @@
                     if(keyMap[e.key]) {
                         e.preventDefault();
                         const [tx, ty] = keyMap[e.key];
-                        // Prevent instant 180 turn in queue
                         const lastMove = inputs.length > 0 ? inputs[inputs.length-1] : [dx, dy];
-                        if (lastMove[0] + tx !== 0 || lastMove[1] + ty !== 0) {
-                            inputs.push([tx, ty]);
-                        }
+                        if (lastMove[0] + tx !== 0 || lastMove[1] + ty !== 0) inputs.push([tx, ty]);
                     }
                 };
 
@@ -1139,17 +1138,18 @@
                     let move = null;
                     if(Math.abs(dxT) > Math.abs(dyT)) move = dxT > 0 ? [1, 0] : [-1, 0];
                     else move = dyT > 0 ? [0, 1] : [0, -1];
-                    
                     const lastMove = inputs.length > 0 ? inputs[inputs.length-1] : [dx, dy];
-                    if (lastMove[0] + move[0] !== 0 || lastMove[1] + move[1] !== 0) {
-                        inputs.push(move);
-                    }
+                    if (lastMove[0] + move[0] !== 0 || lastMove[1] + move[1] !== 0) inputs.push(move);
                 };
 
-                function update() {
-                    if(!gameState.running) return;
+                // Game Loop State
+                let lastTime = performance.now();
+                let accumulator = 0;
 
-                    // Process input
+                function logicUpdate() {
+                    // Capture Previous State for Interpolation
+                    prevSnake = JSON.parse(JSON.stringify(snake));
+
                     if(inputs.length > 0) {
                         const move = inputs.shift();
                         dx = move[0]; dy = move[1];
@@ -1187,7 +1187,6 @@
                     if(head.x === apple.x && head.y === apple.y) {
                         score++;
                         scoreEl.innerText = score;
-                        // New apple position
                         while(true) {
                             apple.x = Math.floor(Math.random() * tileCount);
                             apple.y = Math.floor(Math.random() * tileCount);
@@ -1199,10 +1198,8 @@
                     }
                 }
 
-                function draw() {
-                    if(!gameState.running) return;
-                    
-                    // Background Checkerboard (Google Style)
+                function draw(alpha) {
+                    // Background
                     for(let r=0; r<tileCount; r++) {
                         for(let c=0; c<tileCount; c++) {
                             ctx.fillStyle = (r+c)%2 === 0 ? '#aad751' : '#a2d149';
@@ -1217,54 +1214,81 @@
                     ctx.beginPath();
                     ctx.arc(ax, ay, tileSize/2 - 2, 0, Math.PI*2);
                     ctx.fill();
-                    // Apple Leaf
-                    ctx.fillStyle = '#579e2d'; // leaf green
-                    ctx.beginPath(); // Simplified leaf
+                    ctx.fillStyle = '#579e2d'; 
+                    ctx.beginPath();
                     ctx.ellipse(ax, ay-10, 6, 3, Math.PI/4, 0, Math.PI*2);
                     ctx.fill();
 
-                    // Snake
-                    ctx.fillStyle = '#4674e9'; // Google Blue
-                    // Draw Head separately for eyes
-                    let head = snake[0];
-                    let hx = head.x * tileSize;
-                    let hy = head.y * tileSize;
+                    // Snake with Interpolation
+                    ctx.fillStyle = '#4674e9'; 
                     
-                    // Body
                     snake.forEach((p, i) => {
-                        // slightly smaller rects for segment feel
-                        // ctx.fillRect(p.x*tileSize + 1, p.y*tileSize + 1, tileSize-2, tileSize-2);
-                        // Or smooth connect? Google snake is segmented but tight
-                        ctx.fillRect(p.x*tileSize, p.y*tileSize, tileSize, tileSize);
+                        let prev = prevSnake[i] || p; // New segment starts at itself
+                        
+                        // Lerp
+                        let dx = p.x - prev.x;
+                        let dy = p.y - prev.y;
+                        
+                        // Fix Wrap-around lerp glitch
+                        if (Math.abs(dx) > 1) dx = 0; 
+                        if (Math.abs(dy) > 1) dy = 0;
+
+                        let drawX = prev.x + dx * alpha;
+                        let drawY = prev.y + dy * alpha;
+
+                        ctx.fillRect(drawX * tileSize, drawY * tileSize, tileSize, tileSize);
                     });
 
-                    // Eyes
+                    // Eyes (Based on head interpolation)
+                    let headP = snake[0];
+                    let prevH = prevSnake[0] || headP;
+                    let hDx = headP.x - prevH.x; if(Math.abs(hDx)>1) hDx=0;
+                    let hDy = headP.y - prevH.y; if(Math.abs(hDy)>1) hDy=0;
+                    
+                    let curHeadX = (prevH.x + hDx * alpha) * tileSize;
+                    let curHeadY = (prevH.y + hDy * alpha) * tileSize;
+                    
                     ctx.fillStyle = 'white';
-                    let ex = hx + tileSize/2;
-                    let ey = hy + tileSize/2;
+                    let ex = curHeadX + tileSize/2;
+                    let ey = curHeadY + tileSize/2;
                     let off = tileSize/4;
                     
-                    // Eye positions based on direction
                     let eye1 = {x: ex, y: ey}, eye2 = {x: ex, y: ey};
-                    if(dy === -1) { eye1.x -= off; eye1.y -= off; eye2.x += off; eye2.y -= off; } // Up
-                    else if(dy === 1) { eye1.x -= off; eye1.y += off; eye2.x += off; eye2.y += off; } // Down
-                    else if(dx === -1) { eye1.x -= off; eye1.y -= off; eye2.x -= off; eye2.y += off; } // Left
-                    else { eye1.x += off; eye1.y -= off; eye2.x += off; eye2.y += off; } // Right
+                    // Use logic dx/dy for eye direction so they don't spin during interpolation? 
+                    // Or keep them relative to movement. 
+                    if(dy === -1) { eye1.x -= off; eye1.y -= off; eye2.x += off; eye2.y -= off; }
+                    else if(dy === 1) { eye1.x -= off; eye1.y += off; eye2.x += off; eye2.y += off; }
+                    else if(dx === -1) { eye1.x -= off; eye1.y -= off; eye2.x -= off; eye2.y += off; }
+                    else { eye1.x += off; eye1.y -= off; eye2.x += off; eye2.y += off; }
 
                     ctx.beginPath(); ctx.arc(eye1.x, eye1.y, 3, 0, Math.PI*2); ctx.fill();
                     ctx.beginPath(); ctx.arc(eye2.x, eye2.y, 3, 0, Math.PI*2); ctx.fill();
                     
-                    // Pupils
                     ctx.fillStyle = 'black';
                     ctx.beginPath(); ctx.arc(eye1.x, eye1.y, 1.5, 0, Math.PI*2); ctx.fill();
                     ctx.beginPath(); ctx.arc(eye2.x, eye2.y, 1.5, 0, Math.PI*2); ctx.fill();
-
                 }
 
-                gameInterval = setInterval(() => {
-                    update();
-                    requestAnimationFrame(draw);
-                }, speed);
+                function loop(now) {
+                    if(!gameState.running) return;
+                    
+                    let dt = now - lastTime;
+                    lastTime = now;
+                    accumulator += dt;
+
+                    // Prevent spiral of death
+                    if (accumulator > 200) accumulator = 200;
+
+                    while (accumulator >= speed) {
+                        logicUpdate();
+                        accumulator -= speed;
+                    }
+
+                    let alpha = accumulator / speed;
+                    draw(alpha);
+                    gameState.animId = requestAnimationFrame(loop);
+                }
+                gameState.animId = requestAnimationFrame(loop);
             };
         }
 
